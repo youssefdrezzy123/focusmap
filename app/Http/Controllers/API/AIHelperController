@@ -1,0 +1,15 @@
+<?php
+
+namespace App\Http\Controllers\API;
+
+use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+
+class AIHelperController extends Controller
+{
+    public function generateSuggestions(Request $request)
+    {
+        // Add your logic for generating AI suggestions here
+        return response()->json(['message' => 'Suggestions generated successfully']);
+    }
+}

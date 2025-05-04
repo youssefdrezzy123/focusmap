@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FocusMap - Gestion d'Objectifs</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .goal-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        .goal-container:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .goal-header {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .task-item:last-child {
+            border-bottom: none;
+        }
+        .add-goal-form {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .btn-add {
+            background: #6366f1;
+            color: white;
+            border: none;
+        }
+        .btn-add:hover {
+            background: #4f46e5;
+        }
+        .btn-task {
+            background: #e9ecef;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-left: 10px;
+        }
+        .btn-task:hover {
+            background: #dee2e6;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+        .progress-bar {
+            height: 5px;
+            background: #6366f1;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4"><i class="fas fa-bullseye me-2"></i>FocusMap</h1>
+        
+        <!-- Formulaire d'ajout -->
+        <div class="add-goal-form">
+            <h3><i class="fas fa-plus-circle me-2"></i>Ajouter un Goal</h3>
+            <div class="input-group mb-3">
+                <input type="text" id="newGoalTitle" class="form-control" placeholder="Titre du goal">
+                <button class="btn btn-add" id="addGoalBtn">
+                    <i class="fas fa-check me-1"></i>Ajouter
+                </button>
+            </div>
+            <div class="input-group">
+                <input type="text" id="newTaskText" class="form-control" placeholder="Nouvelle tâche">
+                <select id="goalSelect" class="form-select">
+                    <option value="">Sélectionnez un goal</option>
+                </select>
+                <button class="btn btn-add" id="addTaskBtn">
+                    <i class="fas fa-tasks me-1"></i>Ajouter Tâche
+                </button>
+            </div>
+        </div>
+
+        <!-- Container pour les goals existants -->
+        <div id="goalsContainer">
+            <!-- Les goals seront ajoutés ici dynamiquement -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Données initiales
+        let goals = [
+            {
+                id: 1,
+                title: "Quad",
+                tasks: [
+                    { id: 1, text: "get selected", completed: false },
+                    { id: 2, text: "selected", completed: false },
+                    { id: 3, text: "make-member", completed: false },
+                    { id: 4, text: "double", completed: false }
+                ]
+            },
+            {
+                id: 2,
+                title: "Objective 1",
+                tasks: [
+                    { id: 1, text: "code 1", completed: false },
+                    { id: 2, text: "objective 2", completed: false },
+                    { id: 3, text: "objective 3", completed: false },
+                    { id: 4, text: "objective 4", completed: false }
+                ]
+            }
+        ];
+
+        // Chargement initial
+        document.addEventListener('DOMContentLoaded', function() {
+            loadGoals();
+            updateGoalSelect();
+        });
+
+        // Ajout d'un nouveau goal
+        document.getElementById('addGoalBtn').addEventListener('click', function() {
+            const goalTitle = document.getElementById('newGoalTitle').value.trim();
+            if (goalTitle) {
+                const newGoal = {
+                    id: Date.now(),
+                    title: goalTitle,
+                    tasks: []
+                };
+                goals.push(newGoal);
+                saveGoals();
+                renderGoal(newGoal);
+                updateGoalSelect();
+                document.getElementById('newGoalTitle').value = '';
+            }
+        });
+
+        // Ajout d'une nouvelle tâche
+        document.getElementById('addTaskBtn').addEventListener('click', function() {
+            const taskText = document.getElementById('newTaskText').value.trim();
+            const goalId = parseInt(document.getElementById('goalSelect').value);
+            
+            if (taskText && goalId) {
+                const goal = goals.find(g => g.id === goalId);
+                if (goal) {
+                    const newTask = {
+                        id: Date.now(),
+                        text: taskText,
+                        completed: false
+                    };
+                    goal.tasks.push(newTask);
+                    saveGoals();
+                    renderGoals();
+                    document.getElementById('newTaskText').value = '';
+                }
+            }
+        });
+
+        // Fonction pour afficher tous les goals
+        function loadGoals() {
+            const savedGoals = localStorage.getItem('focusmap-goals');
+            if (savedGoals) {
+                goals = JSON.parse(savedGoals);
+            }
+            renderGoals();
+        }
+
+        // Fonction pour sauvegarder les goals
+        function saveGoals() {
+            localStorage.setItem('focusmap-goals', JSON.stringify(goals));
+        }
+
+        // Fonction pour afficher un goal
+        function renderGoal(goal) {
+            const goalsContainer = document.getElementById('goalsContainer');
+            
+            const goalElement = document.createElement('div');
+            goalElement.className = 'goal-container';
+            goalElement.dataset.id = goal.id;
+            
+            const completedCount = goal.tasks.filter(t => t.completed).length;
+            const progressPercent = goal.tasks.length > 0 
+                ? (completedCount / goal.tasks.length) * 100 
+                : 0;
+            
+            goalElement.innerHTML = `
+                <div class="goal-header">
+                    <h3>${goal.title}</h3>
+                    <span class="badge bg-secondary">${goal.tasks.length} tâches</span>
+                </div>
+                <ul class="task-list">
+                    ${goal.tasks.map(task => `
+                        <li class="task-item" data-task-id="${task.id}">
+                            <input type="checkbox" class="form-check-input me-2" ${task.completed ? 'checked' : ''}>
+                            <span class="${task.completed ? 'completed' : ''}">${task.text}</span>
+                            <button class="btn-task delete-task"><i class="fas fa-trash"></i></button>
+                        </li>
+                    `).join('')}
+                </ul>
+                <div class="progress-bar" style="width: ${progressPercent}%"></div>
+            `;
+            
+            goalsContainer.appendChild(goalElement);
+            
+            // Ajout des écouteurs d'événements
+            goalElement.querySelectorAll('.form-check-input').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const taskId = parseInt(this.closest('.task-item').dataset.taskId);
+                    const goal = goals.find(g => g.id === goal.id);
+                    const task = goal.tasks.find(t => t.id === taskId);
+                    task.completed = this.checked;
+                    saveGoals();
+                    renderGoals();
+                });
+            });
+            
+            goalElement.querySelectorAll('.delete-task').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const taskId = parseInt(this.closest('.task-item').dataset.taskId);
+                    const goalIndex = goals.findIndex(g => g.id === goal.id);
+                    goals[goalIndex].tasks = goals[goalIndex].tasks.filter(t => t.id !== taskId);
+                    saveGoals();
+                    renderGoals();
+                });
+            });
+        }
+
+        // Fonction pour afficher tous les goals
+        function renderGoals() {
+            const goalsContainer = document.getElementById('goalsContainer');
+            goalsContainer.innerHTML = '';
+            goals.forEach(goal => renderGoal(goal));
+            updateGoalSelect();
+        }
+
+        // Mise à jour de la liste déroulante des goals
+        function updateGoalSelect() {
+            const goalSelect = document.getElementById('goalSelect');
+            goalSelect.innerHTML = '<option value="">Sélectionnez un goal</option>';
+            goals.forEach(goal => {
+                const option = document.createElement('option');
+                option.value = goal.id;
+                option.textContent = goal.title;
+                goalSelect.appendChild(option);
+            });
+        }
+    </script>
+</body>
+</html>
